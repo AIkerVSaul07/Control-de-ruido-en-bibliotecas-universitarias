@@ -258,3 +258,152 @@ if random.random() < 0.15:  # 15% probabilidad
 
 # Umbral de alerta continua
 if contador_ruido > 6:  # 6 lecturas seguidas (>75 dB)
+
+```
+### Código Fuente — Sistema IoT de Control de Ruido
+1️⃣ noise_sensor_simulator.py
+```python
+import paho.mqtt.client as mqtt
+import time
+import random
+import json
+
+BROKER = "localhost"  # Cambia por la IP del broker MQTT
+PORT = 1883
+TOPIC = "biblioteca/ruido"
+
+client = mqtt.Client("SimuladorRuido")
+client.connect(BROKER, PORT, 60)
+
+contador_ruido = 0
+
+while True:
+    # Simular nivel de ruido (dB)
+    if random.random() < 0.15:
+        ruido = random.randint(85, 95)
+    else:
+        ruido = random.randint(40, 70)
+
+    alerta = None
+    contador_ruido = contador_ruido + 1 if ruido > 75 else 0
+
+    if ruido > 90:
+        alerta = "ZONA_CRITICA"
+    elif ruido > 85:
+        alerta = "PICO_DE_RUIDO"
+    elif contador_ruido > 6:
+        alerta = "RUIDO_EXCESIVO_CONTINUO"
+
+    payload = {
+        "nivel_ruido": ruido,
+        "alerta": alerta,
+        "zona": "Biblioteca Norte",
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    client.publish(TOPIC, json.dumps(payload))
+    print(f"[MQTT] Enviado: {payload}")
+    time.sleep(5)
+```
+```python
+noise_bridge.py
+import paho.mqtt.client as mqtt
+import json
+
+# Configuración del broker AWS IoT y Local
+BROKER_AWS = "a1b2c3d4e5-ats.iot.us-east-1.amazonaws.com"
+BROKER_LOCAL = "localhost"
+
+TOPICS = ["biblioteca/ruido", "alertas/ruido"]
+
+# Cliente AWS
+client_aws = mqtt.Client("BridgeAWS")
+client_aws.tls_set(ca_certs="certs/root-CA.crt",
+                   certfile="certs/device-certificate.crt",
+                   keyfile="certs/private-key.key")
+
+# Cliente Local
+client_local = mqtt.Client("BridgeLocal")
+
+# Conexión
+client_aws.connect(BROKER_AWS, 8883, 60)
+client_local.connect(BROKER_LOCAL, 1883, 60)
+
+def on_message_local(client, userdata, msg):
+    print(f"[Bridge] Mensaje local recibido -> reenviando a AWS: {msg.topic}")
+    client_aws.publish(msg.topic, msg.payload)
+
+def on_message_aws(client, userdata, msg):
+    print(f"[Bridge] Mensaje AWS recibido -> reenviando a Local: {msg.topic}")
+    client_local.publish(msg.topic, msg.payload)
+
+client_local.on_message = on_message_local
+client_aws.on_message = on_message_aws
+
+for topic in TOPICS:
+    client_local.subscribe(topic)
+    client_aws.subscribe(topic)
+
+print("🔗 Bridge AWS ↔ Local activo.")
+client_local.loop_start()
+client_aws.loop_forever()
+```
+
+3️⃣ mqtt_to_influx.py
+```python
+from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS
+import paho.mqtt.client as mqtt
+import json
+
+# Configuración de InfluxDB
+token = "tu_token_aqui"
+org = "BibliotecaUniv"
+bucket = "ruido"
+influx_url = "http://localhost:8086"
+
+client_influx = InfluxDBClient(url=influx_url, token=token, org=org)
+write_api = client_influx.write_api(write_options=SYNCHRONOUS)
+
+# Configuración MQTT
+BROKER = "localhost"
+TOPIC = "biblioteca/ruido"
+
+def on_message(client, userdata, msg):
+    try:
+        data = json.loads(msg.payload.decode())
+        point = (
+            Point("nivel_ruido")
+            .tag("zona", data.get("zona", "Desconocida"))
+            .field("valor", data["nivel_ruido"])
+            .field("alerta", str(data.get("alerta", "Ninguna")))
+            .time(data["timestamp"], WritePrecision.NS)
+        )
+        write_api.write(bucket=bucket, org=org, record=point)
+        print(f"[InfluxDB] Guardado: {data}")
+    except Exception as e:
+        print(f"Error procesando mensaje: {e}")
+
+client_mqtt = mqtt.Client("InfluxConnector")
+client_mqtt.on_message = on_message
+client_mqtt.connect(BROKER, 1883, 60)
+client_mqtt.subscribe(TOPIC)
+
+print("📡 Conector MQTT → InfluxDB ejecutándose...")
+client_mqtt.loop_forever()
+```
+🧠 Flujo de Ejecución
+# 1️⃣ Simulador publica niveles de ruido
+```python
+python3 noise_sensor_simulator.py
+```
+
+# 2️⃣ Bridge reenvía mensajes entre AWS ↔ EC2
+```python
+python3 noise_bridge.py
+```
+
+# 3️⃣ InfluxDB almacena los datos recibidos
+```python
+python3 mqtt_to_influx.py
+```
