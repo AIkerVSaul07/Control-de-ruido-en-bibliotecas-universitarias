@@ -34,6 +34,8 @@ El sistema se compone de **tres módulos principales**, que trabajan de forma in
 3. **Conector InfluxDB (`mqtt_to_influx.py`)**  
    Suscribe los mensajes MQTT y los almacena en una base de datos **InfluxDB**, permitiendo su posterior análisis en **Grafana**.
 
+   
+
 ---
 
 ## 🔄 Flujo General de Funcionamiento
