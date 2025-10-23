@@ -233,7 +233,6 @@ python3 noise_sensor_simulator.py
 
 ## 🖼️ Ejemplos Visuales
 
-📂 **Sube las imágenes a tu repositorio en la carpeta:**
 
 ---
 
@@ -268,7 +267,7 @@ import time
 import random
 import json
 
-BROKER = "localhost"  # Cambia por la IP del broker MQTT
+BROKER = "1.124.1.0"  # Cambia por la IP del broker MQTT
 PORT = 1883
 TOPIC = "biblioteca/ruido"
 
@@ -312,7 +311,7 @@ import json
 
 # Configuración del broker AWS IoT y Local
 BROKER_AWS = "a1b2c3d4e5-ats.iot.us-east-1.amazonaws.com"
-BROKER_LOCAL = "localhost"
+BROKER_LOCAL = "1.124.1.0"
 
 TOPICS = ["biblioteca/ruido", "alertas/ruido"]
 
@@ -366,7 +365,7 @@ client_influx = InfluxDBClient(url=influx_url, token=token, org=org)
 write_api = client_influx.write_api(write_options=SYNCHRONOUS)
 
 # Configuración MQTT
-BROKER = "localhost"
+BROKER = "1.124.1.0"
 TOPIC = "biblioteca/ruido"
 
 def on_message(client, userdata, msg):
