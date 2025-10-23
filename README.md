@@ -5,7 +5,7 @@
 ##  Descripción del Proyecto
 
 El proyecto **Control de Ruido en Bibliotecas Universitarias** es un sistema IoT diseñado para **monitorear los niveles de ruido en tiempo real** dentro de espacios académicos, principalmente bibliotecas universitarias.  
-Su propósito es **detectar niveles sonoros excesivos** y **emitir alertas automáticas**, permitiendo así mantener un ambiente óptimo para el estudio.
+Su propósito es **detectar niveles sonoros excesivos** (Decibelios) y **emitir alertas automáticas**, permitiendo así mantener un ambiente óptimo para el estudio.
 
 Este sistema combina **sensores simulados**, **mensajería MQTT**, **almacenamiento en InfluxDB** y **visualización en Grafana**, logrando una solución integral que refleja cómo se implementaría un entorno real de monitoreo inteligente.
 
